@@ -5,11 +5,10 @@
   <title>Resellers Shop</title>
   <style>
     body {
-      background-color: #0f0f0f;
-      color: white;
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      font-family: sans-serif;
+      background: black;
+      color: white;
       overflow-x: hidden;
     }
     header {
@@ -17,9 +16,11 @@
       justify-content: space-between;
       padding: 1rem;
       font-size: 1.2rem;
-      font-weight: bold;
+      background: #111;
+      position: sticky;
+      top: 0;
     }
-    .products {
+    .product-grid {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
@@ -27,165 +28,196 @@
       padding: 1rem;
     }
     .product {
-      width: 30%;
-      background: #1e1e1e;
+      background: #1a1a1a;
       padding: 1rem;
       border-radius: 12px;
+      width: calc(33% - 2rem);
+      min-width: 180px;
       text-align: center;
-      opacity: 0.5;
-      transition: opacity 0.5s;
-    }
-    .product.in-view {
-      opacity: 1;
+      opacity: 0.4;
+      transition: opacity 0.3s;
     }
     .product img {
       width: 100%;
+      height: 150px;
+      object-fit: cover;
       border-radius: 8px;
     }
-    .product h3 {
-      margin: 0.5rem 0;
+    .product.visible {
+      opacity: 1;
     }
-    .product button {
-      margin-top: 0.5rem;
-      background: #00ff00;
+    button, .bubble-btn {
+      background: green;
       border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      padding: 10px 20px;
+      color: white;
+      border-radius: 20px;
       cursor: pointer;
+      margin-top: 10px;
     }
-    .product button:disabled {
-      background: none;
-      color: red;
-      border: 1px solid red;
-      cursor: not-allowed;
+    .cart-button {
+      background: #222;
+      color: #0f0;
+      padding: 10px 20px;
+      border-radius: 10px;
     }
-    #cart {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      background: #1e1e1e;
-      padding: 1rem;
-      border-radius: 12px;
-      max-width: 300px;
+    #cart-popup, #quantity-popup, #admin-login, #admin-panel {
       display: none;
-    }
-    #cart.show {
-      display: block;
-    }
-    .cart-btn {
-      background: #00ff00;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-    .big-button {
-      background: #00ff00;
+      position: fixed;
+      top: 10%;
+      left: 10%;
+      width: 80%;
+      background: #111;
       padding: 1rem;
-      margin-top: 1rem;
       border-radius: 12px;
-      border: none;
-      width: 100%;
-      font-size: 1.2rem;
+      z-index: 10;
     }
-    @media(max-width: 768px) {
-      .product {
-        width: 90%;
-      }
+    .out-of-stock {
+      color: red;
+      font-weight: bold;
+    }
+    .bubble-btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 16px;
+      background: #333;
+      color: white;
+    }
+    .bubble-btn.selected {
+      background: #00f;
     }
   </style>
 </head>
 <body>
   <header>
     <div>Resellers Shop</div>
-    <button class="cart-btn" onclick="toggleCart()">Cart</button>
-  </header>
-  <div class="products" id="productList"></div>  <div id="cart">
-    <h3>Your Cart</h3>
-    <ul id="cartItems"></ul>
-    <p id="totalPrice"></p>
-    <button class="big-button" onclick="confirmOrder()">Confirm Purchase</button>
+    <div>
+      <button class="cart-button" onclick="openCart()">Cart</button>
+      <button class="cart-button" onclick="openAdminLogin()">Admin</button>
+    </div>
+  </header>  <div class="product-grid" id="product-grid"></div>  <div id="quantity-popup"></div>  <div id="cart-popup"></div>  <div id="admin-login">
+    <h3>Enter Admin Password</h3>
+    <input type="password" id="admin-password" />
+    <button onclick="checkAdmin()">Login</button>
+  </div>  <div id="admin-panel">
+    <h3>Order Log</h3>
+    <ul id="order-log"></ul>
+    <button onclick="closeAdmin()">Close</button>
   </div>  <script>
-    const inventory = {
-      'eric-shorts.jpg': { name: 'Eric Emanuels', price: 28, stock: 10 },
-      'bape-shorts.jpg': { name: 'Bape Shorts', price: 30, stock: 8 },
-      'essentials-shorts.jpg': { name: 'Essentials Shorts', price: 26, stock: 12 },
-      'sony-xm5.jpg': { name: 'Sony XM5', price: 170, stock: 5 },
-      'airpod-max.jpg': { name: 'Airpod Max', price: 160, stock: 6 },
-      'stanley-cup.jpg': { name: 'Stanley Cup', price: 24, stock: 20 },
-      'northface.jpg': { name: 'Northface Puffer', price: 60, stock: 4 },
-      'sp5der-combo.jpg': { name: 'Sp5der Hoodie', price: 50, stock: 5 },
-      'sp5der-combo2.jpg': { name: 'Sp5der Sweatpants', price: 40, stock: 5 },
-      'airpodpro2.jpg': { name: 'Airpod Pro 2', price: 55, stock: 10 },
-      'airpod4.jpg': { name: 'Airpod Gen 4', price: 56, stock: 10 }
-    };
+    const products = [
+      { name: "Eric Emanuels", img: "eric-shorts.jpg", price: 40, stock: 10 },
+      { name: "Bape Shorts", img: "bape-shorts.jpg", price: 40, stock: 10 },
+      { name: "Essentials Shorts", img: "essentials-shorts.jpg", price: 35, stock: 10 },
+      { name: "Sony XM5", img: "sony-xm5.jpg", price: 150, stock: 5 },
+      { name: "Airpod Max", img: "airpod-max.jpg", price: 130, stock: 5 },
+      { name: "Stanley Cup", img: "stanley-cup.jpg", price: 30, stock: 8 },
+      { name: "Northface Puffer", img: "northface.jpg", price: 90, stock: 4 },
+      { name: "Sp5der Combo", img: "sp5der-combo.jpg", price: 120, stock: 6 },
+      { name: "Airpod Pro 2", img: "airpodpro2.jpg", price: 55, stock: 10 },
+      { name: "Airpod 4", img: "airpod4.jpg", price: 60, stock: 10 }
+    ];
 
     const cart = [];
 
     function renderProducts() {
-      const container = document.getElementById('productList');
-      container.innerHTML = '';
-      Object.entries(inventory).forEach(([img, { name, price, stock }]) => {
-        const div = document.createElement('div');
-        div.className = 'product';
-        const outOfStock = stock <= 0;
-        div.innerHTML = `
-          <img src="${img}" alt="${name}" />
-          <h3>${name}</h3>
-          <p>$${price}</p>
-          <button ${outOfStock ? 'disabled' : ''} onclick="addToCart('${img}')">
-            ${outOfStock ? 'OUT OF STOCK' : 'Add to Cart'}
-          </button>
+      const grid = document.getElementById("product-grid");
+      grid.innerHTML = "";
+      products.forEach((p, i) => {
+        const item = document.createElement("div");
+        item.className = "product visible";
+        const stock = p.stock > 0 ? `<button onclick="openQuantity(${i})">Add to Cart</button>` : `<div class='out-of-stock'>OUT OF STOCK</div>`;
+        item.innerHTML = `
+          <img src="${p.img}" alt="${p.name}" />
+          <div>${p.name}</div>
+          <div>$${p.price}</div>
+          ${stock}
         `;
-        container.appendChild(div);
+        grid.appendChild(item);
       });
     }
 
-    function addToCart(img) {
-      const item = inventory[img];
-      if (item.stock > 0) {
-        cart.push(item);
-        item.stock--;
-        renderProducts();
-        renderCart();
+    function openQuantity(index) {
+      const p = products[index];
+      const popup = document.getElementById("quantity-popup");
+      popup.style.display = "block";
+      popup.innerHTML = `
+        <h3>${p.name}</h3>
+        <p>Inventory Stock: ${p.stock}</p>
+        <input type="number" id="qty" value="1" min="1" max="${p.stock}" oninput="checkQty(${index})" />
+        <div id="qty-msg"></div>
+        <button onclick="addToCart(${index})">Put in Cart</button>
+        <button onclick="popup.style.display='none'">Back</button>
+      `;
+    }
+
+    function checkQty(index) {
+      const input = document.getElementById("qty");
+      const msg = document.getElementById("qty-msg");
+      if (parseInt(input.value) > products[index].stock) {
+        msg.innerHTML = "<span style='color:red'>Too many!</span>";
+      } else {
+        msg.innerHTML = "";
       }
     }
 
-    function toggleCart() {
-      document.getElementById('cart').classList.toggle('show');
-      renderCart();
+    function addToCart(index) {
+      const qty = parseInt(document.getElementById("qty").value);
+      if (qty <= products[index].stock) {
+        cart.push({ ...products[index], qty });
+        document.getElementById("quantity-popup").style.display = "none";
+        alert("Added to cart!");
+      }
     }
 
-    function renderCart() {
-      const ul = document.getElementById('cartItems');
-      ul.innerHTML = '';
+    function openCart() {
+      const popup = document.getElementById("cart-popup");
+      popup.style.display = "block";
+      let html = "<h3>Cart</h3><ul>";
       let total = 0;
-      cart.forEach((item, i) => {
-        const li = document.createElement('li');
-        li.innerText = `${item.name} - $${item.price}`;
-        ul.appendChild(li);
-        total += item.price;
+      cart.forEach(item => {
+        html += `<li>${item.name} x${item.qty} = $${item.qty * item.price}</li>`;
+        total += item.qty * item.price;
       });
-      document.getElementById('totalPrice').innerText = `Total: $${total}`;
+      html += `</ul><p>Total: $${total}</p>`;
+      html += `<p>Send $${total} to CashTag: $ManjorPayne</p>`;
+      html += `<input placeholder='Your CashTag'/><button class='bubble-btn' onclick='confirmOrder()'>Confirm Purchase</button><button class='bubble-btn' onclick='closeCart()'>Back</button>`;
+      popup.innerHTML = html;
+    }
+
+    function closeCart() {
+      document.getElementById("cart-popup").style.display = "none";
     }
 
     function confirmOrder() {
-      alert('Send payment to $ManjorPayne on Cash App with your order note.');
+      const tag = document.querySelector("#cart-popup input").value;
+      const summary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
+      const entry = document.createElement("li");
+      entry.textContent = `@${tag} ordered: ${summary}`;
+      document.getElementById("order-log").appendChild(entry);
+      alert("Order noted!");
+      cart.length = 0;
+      closeCart();
     }
 
-    function fadeInOnScroll() {
-      const elements = document.querySelectorAll('.product');
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-          }
-        });
-      });
-      elements.forEach(el => observer.observe(el));
+    function openAdminLogin() {
+      document.getElementById("admin-login").style.display = "block";
+    }
+
+    function checkAdmin() {
+      const pw = document.getElementById("admin-password").value;
+      if (pw === "admin123") {
+        document.getElementById("admin-login").style.display = "none";
+        document.getElementById("admin-panel").style.display = "block";
+      } else {
+        alert("Wrong password!");
+      }
+    }
+
+    function closeAdmin() {
+      document.getElementById("admin-panel").style.display = "none";
     }
 
     renderProducts();
-    fadeInOnScroll();
   </script></body>
 </html>
