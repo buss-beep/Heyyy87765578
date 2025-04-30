@@ -5,146 +5,187 @@
   <title>Resellers Shop</title>
   <style>
     body {
-      margin: 0;
+      background-color: #0f0f0f;
+      color: white;
       font-family: Arial, sans-serif;
-      background-color: #000;
-      color: #fff;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
     }
     header {
-      background: #111;
-      padding: 20px;
-      text-align: center;
-      font-size: 2em;
-      color: #0f0;
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
     }
-    .store {
+    .products {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 16px;
-      padding: 20px;
+      gap: 1rem;
+      padding: 1rem;
     }
-    .item {
-      background: #1a1a1a;
-      padding: 16px;
-      border-radius: 8px;
-      width: 160px;
+    .product {
+      width: 30%;
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 12px;
       text-align: center;
-      cursor: pointer;
+      opacity: 0.5;
+      transition: opacity 0.5s;
     }
-    .item img {
+    .product.in-view {
+      opacity: 1;
+    }
+    .product img {
       width: 100%;
       border-radius: 8px;
+    }
+    .product h3 {
+      margin: 0.5rem 0;
+    }
+    .product button {
+      margin-top: 0.5rem;
+      background: #00ff00;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .product button:disabled {
+      background: none;
+      color: red;
+      border: 1px solid red;
+      cursor: not-allowed;
+    }
+    #cart {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #1e1e1e;
+      padding: 1rem;
+      border-radius: 12px;
+      max-width: 300px;
+      display: none;
+    }
+    #cart.show {
+      display: block;
     }
     .cart-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #0f0;
-      color: #000;
-      padding: 10px 20px;
-      border: none;
+      background: #00ff00;
+      padding: 0.5rem 1rem;
       border-radius: 8px;
-      font-weight: bold;
+      border: none;
       cursor: pointer;
     }
-    .cart {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.95);
-      color: #fff;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    .cart-item {
-      margin-bottom: 10px;
-    }
-    .confirm-btn, .back-btn {
-      background: #0f0;
-      color: #000;
+    .big-button {
+      background: #00ff00;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 12px;
       border: none;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 8px;
       width: 100%;
-      font-weight: bold;
-      font-size: 1em;
+      font-size: 1.2rem;
+    }
+    @media(max-width: 768px) {
+      .product {
+        width: 90%;
+      }
     }
   </style>
 </head>
 <body>
-  <header>Resellers Shop</header>
-  <button class="cart-btn" onclick="showCart()">Cart</button>
-  <div class="store" id="store"></div>  <div class="cart" id="cart">
-    <h2>Your Cart</h2>
-    <div id="cartItems"></div>
-    <button class="confirm-btn" onclick="confirmOrder()">Confirm Purchase</button>
-    <button class="back-btn" onclick="hideCart()">Back to Shop</button>
+  <header>
+    <div>Resellers Shop</div>
+    <button class="cart-btn" onclick="toggleCart()">Cart</button>
+  </header>
+  <div class="products" id="productList"></div>  <div id="cart">
+    <h3>Your Cart</h3>
+    <ul id="cartItems"></ul>
+    <p id="totalPrice"></p>
+    <button class="big-button" onclick="confirmOrder()">Confirm Purchase</button>
   </div>  <script>
-    const products = [
-      { name: "Eric Emanuels", img: "eric-shorts.jpg", price: 40 },
-      { name: "Bape Shorts", img: "bape-shorts.jpg", price: 45 },
-      { name: "Essentials Shorts", img: "essentials-shorts.jpg", price: 35 },
-      { name: "Sony XM5", img: "sony-xm5.jpg", price: 170 },
-      { name: "Airpod Max", img: "airpod-max.jpg", price: 160 },
-      { name: "Stanley Cup", img: "stanley-cup.jpg", price: 30 },
-      { name: "Northface Puffer", img: "northface.jpg", price: 80 },
-      { name: "Sp5der Hoodie", img: "sp5der-combo.jpg", price: 60 },
-      { name: "Sp5der Sweatpants", img: "sp5der-combo.jpg", price: 55 },
-      { name: "Airpod Pro 2", img: "airpodpro2.jpg", price: 55 },
-      { name: "Airpod 4", img: "airpod4.jpg", price: 58 },
-    ];
+    const inventory = {
+      'eric-shorts.jpg': { name: 'Eric Emanuels', price: 28, stock: 10 },
+      'bape-shorts.jpg': { name: 'Bape Shorts', price: 30, stock: 8 },
+      'essentials-shorts.jpg': { name: 'Essentials Shorts', price: 26, stock: 12 },
+      'sony-xm5.jpg': { name: 'Sony XM5', price: 170, stock: 5 },
+      'airpod-max.jpg': { name: 'Airpod Max', price: 160, stock: 6 },
+      'stanley-cup.jpg': { name: 'Stanley Cup', price: 24, stock: 20 },
+      'northface.jpg': { name: 'Northface Puffer', price: 60, stock: 4 },
+      'sp5der-combo.jpg': { name: 'Sp5der Hoodie', price: 50, stock: 5 },
+      'sp5der-combo2.jpg': { name: 'Sp5der Sweatpants', price: 40, stock: 5 },
+      'airpodpro2.jpg': { name: 'Airpod Pro 2', price: 55, stock: 10 },
+      'airpod4.jpg': { name: 'Airpod Gen 4', price: 56, stock: 10 }
+    };
 
-    const store = document.getElementById("store");
-    const cart = document.getElementById("cart");
-    const cartItems = document.getElementById("cartItems");
-    let cartData = [];
+    const cart = [];
 
-    products.forEach((product, index) => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `
-        <img src="${product.img}" alt="${product.name}" />
-        <h4>${product.name}</h4>
-        <p>$${product.price}</p>
-      `;
-      div.onclick = () => addToCart(index);
-      store.appendChild(div);
-    });
+    function renderProducts() {
+      const container = document.getElementById('productList');
+      container.innerHTML = '';
+      Object.entries(inventory).forEach(([img, { name, price, stock }]) => {
+        const div = document.createElement('div');
+        div.className = 'product';
+        const outOfStock = stock <= 0;
+        div.innerHTML = `
+          <img src="${img}" alt="${name}" />
+          <h3>${name}</h3>
+          <p>$${price}</p>
+          <button ${outOfStock ? 'disabled' : ''} onclick="addToCart('${img}')">
+            ${outOfStock ? 'OUT OF STOCK' : 'Add to Cart'}
+          </button>
+        `;
+        container.appendChild(div);
+      });
+    }
 
-    function addToCart(index) {
-      const item = products[index];
-      const entry = cartData.find(c => c.name === item.name);
-      if (entry) {
-        entry.qty += 1;
-      } else {
-        cartData.push({ name: item.name, price: item.price, qty: 1 });
+    function addToCart(img) {
+      const item = inventory[img];
+      if (item.stock > 0) {
+        cart.push(item);
+        item.stock--;
+        renderProducts();
+        renderCart();
       }
-      alert(`${item.name} added to cart.`);
     }
 
-    function showCart() {
-      cartItems.innerHTML = cartData.map(item => `
-        <div class="cart-item">
-          ${item.name} x${item.qty} - $${item.qty * item.price}
-        </div>
-      `).join("");
-      cart.style.display = "block";
+    function toggleCart() {
+      document.getElementById('cart').classList.toggle('show');
+      renderCart();
     }
 
-    function hideCart() {
-      cart.style.display = "none";
+    function renderCart() {
+      const ul = document.getElementById('cartItems');
+      ul.innerHTML = '';
+      let total = 0;
+      cart.forEach((item, i) => {
+        const li = document.createElement('li');
+        li.innerText = `${item.name} - $${item.price}`;
+        ul.appendChild(li);
+        total += item.price;
+      });
+      document.getElementById('totalPrice').innerText = `Total: $${total}`;
     }
 
     function confirmOrder() {
-      const total = cartData.reduce((sum, item) => sum + item.qty * item.price, 0);
-      alert(`Send $${total} to $ManjorPayne on Cash App. Include nothing in the notes.`);
-      cartData = [];
-      hideCart();
+      alert('Send payment to $ManjorPayne on Cash App with your order note.');
     }
+
+    function fadeInOnScroll() {
+      const elements = document.querySelectorAll('.product');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+          }
+        });
+      });
+      elements.forEach(el => observer.observe(el));
+    }
+
+    renderProducts();
+    fadeInOnScroll();
   </script></body>
 </html>
