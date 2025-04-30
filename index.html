@@ -7,178 +7,144 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: black;
-      color: white;
+      background-color: #000;
+      color: #fff;
     }
     header {
-      padding: 1em;
+      background: #111;
+      padding: 20px;
       text-align: center;
-      background-color: #121212;
       font-size: 2em;
-      color: #00ff88;
+      color: #0f0;
     }
-    .product {
-      display: inline-block;
-      margin: 1em;
-      text-align: center;
+    .store {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px;
+    }
+    .item {
       background: #1a1a1a;
-      padding: 1em;
+      padding: 16px;
       border-radius: 8px;
-    }
-    .product img {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-    .button, .green-button {
-      padding: 0.5em 1em;
-      margin: 0.5em;
-      background-color: #00ff88;
-      color: black;
-      border: none;
-      border-radius: 8px;
-      font-size: 1em;
+      width: 160px;
+      text-align: center;
       cursor: pointer;
     }
-    .quantity-controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .quantity-controls button {
-      margin: 0 5px;
-      background: #333;
-      color: white;
-    }
-    #cart {
-      position: fixed;
-      top: 1em;
-      right: 1em;
-      background: #1a1a1a;
-      padding: 1em;
+    .item img {
+      width: 100%;
       border-radius: 8px;
     }
-    #adminPanel {
+    .cart-btn {
       position: fixed;
-      bottom: 1em;
-      right: 1em;
-      background: #1a1a1a;
-      padding: 1em;
+      top: 20px;
+      right: 20px;
+      background: #0f0;
+      color: #000;
+      padding: 10px 20px;
+      border: none;
       border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
     }
-    .hidden { display: none; }
+    .cart {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      color: #fff;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .cart-item {
+      margin-bottom: 10px;
+    }
+    .confirm-btn, .back-btn {
+      background: #0f0;
+      color: #000;
+      border: none;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      width: 100%;
+      font-weight: bold;
+      font-size: 1em;
+    }
   </style>
 </head>
 <body>
   <header>Resellers Shop</header>
-  <div id="productList"></div>
-  <button id="viewCart" class="button">View Cart</button>
-  <button id="viewAdmin" class="button">Admin Panel</button>  <div id="cartView" class="hidden">
+  <button class="cart-btn" onclick="showCart()">Cart</button>
+  <div class="store" id="store"></div>  <div class="cart" id="cart">
     <h2>Your Cart</h2>
     <div id="cartItems"></div>
-    <p>Total: $<span id="cartTotal">0</span></p>
-    <button id="backToShop" class="button">Back to Shop</button>
-    <button id="checkout" class="green-button">Place Order</button>
-  </div>  <div id="confirmPurchase" class="hidden">
-    <h2>Confirm Your Order</h2>
-    <label>Enter your CashTag: <input type="text" id="cashTagInput"></label><br><br>
-    <p>Send your payment to: <strong>$ManjorPayne</strong></p>
-    <button id="submitOrder" class="green-button">Confirm Purchase</button>
-  </div>  <div id="adminView" class="hidden">
-    <h2>Orders Log</h2>
-    <div id="orderLogDisplay"></div>
-    <button onclick="closeAdmin()" class="button">Close</button>
+    <button class="confirm-btn" onclick="confirmOrder()">Confirm Purchase</button>
+    <button class="back-btn" onclick="hideCart()">Back to Shop</button>
   </div>  <script>
-    const inventory = {
-      "Sp5der Hoodie": { price: 50, stock: 5 },
-      "AirPods Pro 2": { price: 55, stock: 4 },
-      "Nike Elite Backpack": { price: 40, stock: 3 }
-    };
+    const products = [
+      { name: "Eric Emanuels", img: "eric-shorts.jpg", price: 40 },
+      { name: "Bape Shorts", img: "bape-shorts.jpg", price: 45 },
+      { name: "Essentials Shorts", img: "essentials-shorts.jpg", price: 35 },
+      { name: "Sony XM5", img: "sony-xm5.jpg", price: 170 },
+      { name: "Airpod Max", img: "airpod-max.jpg", price: 160 },
+      { name: "Stanley Cup", img: "stanley-cup.jpg", price: 30 },
+      { name: "Northface Puffer", img: "northface.jpg", price: 80 },
+      { name: "Sp5der Hoodie", img: "sp5der-combo.jpg", price: 60 },
+      { name: "Sp5der Sweatpants", img: "sp5der-combo.jpg", price: 55 },
+      { name: "Airpod Pro 2", img: "airpodpro2.jpg", price: 55 },
+      { name: "Airpod 4", img: "airpod4.jpg", price: 58 },
+    ];
 
-    const productList = document.getElementById("productList");
-    const cart = [];
+    const store = document.getElementById("store");
+    const cart = document.getElementById("cart");
+    const cartItems = document.getElementById("cartItems");
+    let cartData = [];
 
-    for (const name in inventory) {
-      const product = document.createElement("div");
-      product.className = "product";
-      product.innerHTML = `
-        <img src="https://via.placeholder.com/150" alt="${name}" />
-        <h3>${name}</h3>
-        <p>$${inventory[name].price}</p>
-        <div class="quantity-controls">
-          <button onclick="adjustQty('${name}', -1)">-</button>
-          <span id="qty-${name}">0</span>
-          <button onclick="adjustQty('${name}', 1)">+</button>
-        </div>
-        <button onclick="addToCart('${name}')" class="button">Add to Cart</button>
+    products.forEach((product, index) => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <img src="${product.img}" alt="${product.name}" />
+        <h4>${product.name}</h4>
+        <p>$${product.price}</p>
       `;
-      productList.appendChild(product);
-    }
+      div.onclick = () => addToCart(index);
+      store.appendChild(div);
+    });
 
-    function adjustQty(name, amount) {
-      const qtyEl = document.getElementById(`qty-${name}`);
-      let qty = parseInt(qtyEl.innerText) + amount;
-      if (qty < 0) qty = 0;
-      if (qty > inventory[name].stock) qtyEl.style.color = "red";
-      else qtyEl.style.color = "white";
-      qtyEl.innerText = qty;
-    }
-
-    function addToCart(name) {
-      const qty = parseInt(document.getElementById(`qty-${name}`).innerText);
-      if (qty > 0 && qty <= inventory[name].stock) {
-        cart.push({ name, qty, price: inventory[name].price });
-        alert("Added to cart!");
+    function addToCart(index) {
+      const item = products[index];
+      const entry = cartData.find(c => c.name === item.name);
+      if (entry) {
+        entry.qty += 1;
+      } else {
+        cartData.push({ name: item.name, price: item.price, qty: 1 });
       }
+      alert(`${item.name} added to cart.`);
     }
 
-    document.getElementById("viewCart").onclick = () => {
-      document.getElementById("productList").classList.add("hidden");
-      document.getElementById("cartView").classList.remove("hidden");
-      renderCart();
-    };
-
-    document.getElementById("backToShop").onclick = () => {
-      document.getElementById("cartView").classList.add("hidden");
-      document.getElementById("productList").classList.remove("hidden");
-    };
-
-    function renderCart() {
-      const cartItems = document.getElementById("cartItems");
-      cartItems.innerHTML = "";
-      let total = 0;
-      cart.forEach(item => {
-        total += item.price * item.qty;
-        cartItems.innerHTML += `<p>${item.name} x${item.qty} - $${item.price * item.qty}</p>`;
-      });
-      document.getElementById("cartTotal").innerText = total;
+    function showCart() {
+      cartItems.innerHTML = cartData.map(item => `
+        <div class="cart-item">
+          ${item.name} x${item.qty} - $${item.qty * item.price}
+        </div>
+      `).join("");
+      cart.style.display = "block";
     }
 
-    document.getElementById("checkout").onclick = () => {
-      document.getElementById("cartView").classList.add("hidden");
-      document.getElementById("confirmPurchase").classList.remove("hidden");
-    };
+    function hideCart() {
+      cart.style.display = "none";
+    }
 
-    document.getElementById("submitOrder").onclick = () => {
-      const cashTag = document.getElementById("cashTagInput").value;
-      const orderSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
-      const log = JSON.parse(localStorage.getItem("orderLog")) || [];
-      log.push({ cashTag, orderSummary });
-      localStorage.setItem("orderLog", JSON.stringify(log));
-      alert("Order logged! Now send the payment on CashApp");
-      location.reload();
-    };
-
-    document.getElementById("viewAdmin").onclick = () => {
-      document.getElementById("adminView").classList.remove("hidden");
-      const logs = JSON.parse(localStorage.getItem("orderLog")) || [];
-      const display = document.getElementById("orderLogDisplay");
-      display.innerHTML = logs.map(l => `<p><strong>@${l.cashTag}</strong>: ${l.orderSummary}</p>`).join("");
-    };
-
-    function closeAdmin() {
-      document.getElementById("adminView").classList.add("hidden");
+    function confirmOrder() {
+      const total = cartData.reduce((sum, item) => sum + item.qty * item.price, 0);
+      alert(`Send $${total} to $ManjorPayne on Cash App. Include nothing in the notes.`);
+      cartData = [];
+      hideCart();
     }
   </script></body>
-  </html>
+</html>
