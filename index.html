@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resellers Shop</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: black;
+      color: white;
+    }
+    header {
+      padding: 1em;
+      text-align: center;
+      background-color: #121212;
+      font-size: 2em;
+      color: #00ff88;
+    }
+    .product {
+      display: inline-block;
+      margin: 1em;
+      text-align: center;
+      background: #1a1a1a;
+      padding: 1em;
+      border-radius: 8px;
+    }
+    .product img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .button, .green-button {
+      padding: 0.5em 1em;
+      margin: 0.5em;
+      background-color: #00ff88;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .quantity-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .quantity-controls button {
+      margin: 0 5px;
+      background: #333;
+      color: white;
+    }
+    #cart {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      background: #1a1a1a;
+      padding: 1em;
+      border-radius: 8px;
+    }
+    #adminPanel {
+      position: fixed;
+      bottom: 1em;
+      right: 1em;
+      background: #1a1a1a;
+      padding: 1em;
+      border-radius: 8px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>Resellers Shop</header>
+  <div id="productList"></div>
+  <button id="viewCart" class="button">View Cart</button>
+  <button id="viewAdmin" class="button">Admin Panel</button>  <div id="cartView" class="hidden">
+    <h2>Your Cart</h2>
+    <div id="cartItems"></div>
+    <p>Total: $<span id="cartTotal">0</span></p>
+    <button id="backToShop" class="button">Back to Shop</button>
+    <button id="checkout" class="green-button">Place Order</button>
+  </div>  <div id="confirmPurchase" class="hidden">
+    <h2>Confirm Your Order</h2>
+    <label>Enter your CashTag: <input type="text" id="cashTagInput"></label><br><br>
+    <p>Send your payment to: <strong>$ManjorPayne</strong></p>
+    <button id="submitOrder" class="green-button">Confirm Purchase</button>
+  </div>  <div id="adminView" class="hidden">
+    <h2>Orders Log</h2>
+    <div id="orderLogDisplay"></div>
+    <button onclick="closeAdmin()" class="button">Close</button>
+  </div>  <script>
+    const inventory = {
+      "Sp5der Hoodie": { price: 50, stock: 5 },
+      "AirPods Pro 2": { price: 55, stock: 4 },
+      "Nike Elite Backpack": { price: 40, stock: 3 }
+    };
+
+    const productList = document.getElementById("productList");
+    const cart = [];
+
+    for (const name in inventory) {
+      const product = document.createElement("div");
+      product.className = "product";
+      product.innerHTML = `
+        <img src="https://via.placeholder.com/150" alt="${name}" />
+        <h3>${name}</h3>
+        <p>$${inventory[name].price}</p>
+        <div class="quantity-controls">
+          <button onclick="adjustQty('${name}', -1)">-</button>
+          <span id="qty-${name}">0</span>
+          <button onclick="adjustQty('${name}', 1)">+</button>
+        </div>
+        <button onclick="addToCart('${name}')" class="button">Add to Cart</button>
+      `;
+      productList.appendChild(product);
+    }
+
+    function adjustQty(name, amount) {
+      const qtyEl = document.getElementById(`qty-${name}`);
+      let qty = parseInt(qtyEl.innerText) + amount;
+      if (qty < 0) qty = 0;
+      if (qty > inventory[name].stock) qtyEl.style.color = "red";
+      else qtyEl.style.color = "white";
+      qtyEl.innerText = qty;
+    }
+
+    function addToCart(name) {
+      const qty = parseInt(document.getElementById(`qty-${name}`).innerText);
+      if (qty > 0 && qty <= inventory[name].stock) {
+        cart.push({ name, qty, price: inventory[name].price });
+        alert("Added to cart!");
+      }
+    }
+
+    document.getElementById("viewCart").onclick = () => {
+      document.getElementById("productList").classList.add("hidden");
+      document.getElementById("cartView").classList.remove("hidden");
+      renderCart();
+    };
+
+    document.getElementById("backToShop").onclick = () => {
+      document.getElementById("cartView").classList.add("hidden");
+      document.getElementById("productList").classList.remove("hidden");
+    };
+
+    function renderCart() {
+      const cartItems = document.getElementById("cartItems");
+      cartItems.innerHTML = "";
+      let total = 0;
+      cart.forEach(item => {
+        total += item.price * item.qty;
+        cartItems.innerHTML += `<p>${item.name} x${item.qty} - $${item.price * item.qty}</p>`;
+      });
+      document.getElementById("cartTotal").innerText = total;
+    }
+
+    document.getElementById("checkout").onclick = () => {
+      document.getElementById("cartView").classList.add("hidden");
+      document.getElementById("confirmPurchase").classList.remove("hidden");
+    };
+
+    document.getElementById("submitOrder").onclick = () => {
+      const cashTag = document.getElementById("cashTagInput").value;
+      const orderSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
+      const log = JSON.parse(localStorage.getItem("orderLog")) || [];
+      log.push({ cashTag, orderSummary });
+      localStorage.setItem("orderLog", JSON.stringify(log));
+      alert("Order logged! Now send the payment on CashApp");
+      location.reload();
+    };
+
+    document.getElementById("viewAdmin").onclick = () => {
+      document.getElementById("adminView").classList.remove("hidden");
+      const logs = JSON.parse(localStorage.getItem("orderLog")) || [];
+      const display = document.getElementById("orderLogDisplay");
+      display.innerHTML = logs.map(l => `<p><strong>@${l.cashTag}</strong>: ${l.orderSummary}</p>`).join("");
+    };
+
+    function closeAdmin() {
+      document.getElementById("adminView").classList.add("hidden");
+    }
+  </script></body>
+  </html>
